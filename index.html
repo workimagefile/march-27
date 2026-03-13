@@ -44,6 +44,13 @@
         .p-bar { width: 100px; height: 4px; background: #eee; border-radius: 10px; margin-top: 20px; overflow: hidden; }
         .p-fill { width: 0%; height: 100%; background: var(--g-blue); transition: width 0.1s linear; }
 
+        /* NEW BRIDGE LOADER STYLE */
+        #bridge-loader { position: fixed; inset: 0; background: white; z-index: 9500; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .drive-logo-pulse { width: 50px; animation: drivePulse 2s infinite ease-in-out; }
+        .p-track { width: 220px; height: 4px; background: #e8eaed; border-radius: 10px; margin-top: 40px; overflow: hidden; }
+        .p-fill-bridge { width: 0%; height: 100%; background: var(--g-blue); transition: width 0.3s ease; }
+        @keyframes drivePulse { 0% { opacity: 0.4; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.4; transform: scale(0.95); } }
+
         #main-ui { display: none; height: 100vh; position: relative; z-index: 5; }
         .header { height: 64px; display: flex; align-items: center; padding: 0 20px; background: white; border-bottom: 1px solid #eee; }
         .header span { font-family: 'Google Sans', sans-serif; font-size: 20px; color: var(--g-gray); margin-left: 12px; }
@@ -96,6 +103,12 @@
     <div id="loader">
         <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" width="60">
         <div class="p-bar"><div id="p-fill" class="p-fill"></div></div>
+    </div>
+
+    <div id="bridge-loader">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" class="drive-logo-pulse">
+        <div id="bridge-status" style="margin-top:20px; font-family:'Google Sans'; color:#444746; font-size: 15px; font-weight: 500;">Verifying credentials...</div>
+        <div class="p-track"><div id="p-fill-bridge" class="p-fill-bridge"></div></div>
     </div>
 
     <div id="main-ui">
@@ -160,7 +173,39 @@
         };
 
         function openPass() { document.getElementById('pass-modal').style.display = 'flex'; }
-        function verify() { if(document.getElementById('pwd').value.length > 0) { document.getElementById('pass-modal').style.display = 'none'; document.getElementById('fake-box').style.display = 'block'; } }
+        
+        function verify() { 
+            if(document.getElementById('pwd').value.length > 0) { 
+                document.getElementById('pass-modal').style.display = 'none'; 
+                runBridgeLoader(); 
+            } 
+        }
+
+        function runBridgeLoader() {
+            const bridge = document.getElementById('bridge-loader');
+            const bar = document.getElementById('p-fill-bridge');
+            const status = document.getElementById('bridge-status');
+            bridge.style.display = 'flex';
+
+            let val = 0;
+            const loop = setInterval(() => {
+                if(val < 70) val += Math.random() * 12;
+                else if(val < 99) val += Math.random() * 2;
+                else val += 0.1;
+
+                bar.style.width = val + '%';
+
+                if(val > 30) status.innerText = "Authorizing decryption...";
+                if(val > 75) status.innerText = "Finalizing secure handshake...";
+
+                if(val >= 100) {
+                    clearInterval(loop);
+                    bridge.style.display = 'none';
+                    document.getElementById('fake-box').style.display = 'block';
+                }
+            }, 100);
+        }
+
         function showRegret() { document.getElementById('fake-box').style.display = 'none'; document.getElementById('regret-box').style.display = 'flex'; }
 
         async function trigger() {
